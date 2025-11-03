@@ -1,12 +1,13 @@
 import {useEffect, useRef, useState} from "react";
+import {useChatContext} from "../../context/ChatContext.tsx";
 
 
 export default function useChat(conversationId: null, otherUserId: null) {
 
-
+    console.log('start usechat')
     const wsRef = useRef<WebSocket | null>(null);
 
-    const [messages, setMessages] = useState()
+    const {messages, setMessages} = useChatContext()
 
 
     useEffect(() => {
@@ -28,7 +29,7 @@ export default function useChat(conversationId: null, otherUserId: null) {
         wsRef.current = ws
 
         ws.onopen = () => {
-
+            console.log('open web socket')
             const msg_data = {
                 type: 'read_messages',
             }
@@ -64,6 +65,7 @@ export default function useChat(conversationId: null, otherUserId: null) {
         };
 
         ws.onclose = (event) => {
+            setMessages([])
             console.log('socket closed:', event.code, event.reason)
         }
 
@@ -92,5 +94,5 @@ export default function useChat(conversationId: null, otherUserId: null) {
         }
     }
 
-    return {messages, sendMessage}
+    return {sendMessage}
 }

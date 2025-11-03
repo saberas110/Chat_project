@@ -1,10 +1,14 @@
-import {Send, Paperclip, Smile} from "lucide-react";
 import useChat from "../../hooks/chat/useChat.ts";
 import {useEffect, useRef, useState} from "react";
 import useLastSeen from "../../hooks/lastSeen/useLastSeen.ts";
+import useBotChat from "../../hooks/chat/useBotChat.ts";
+import {useChatContext} from "../../context/ChatContext.tsx";
+import { Paperclip, Smile, Send, Image as ImageIcon } from 'lucide-react';
+
+
+
 
 const ChatArea = ({activeChat}) => {
-
 
 
     const lastSeen = useLastSeen(activeChat.last_seen)
@@ -12,17 +16,35 @@ const ChatArea = ({activeChat}) => {
     const [otherUserId, setOtherUserId] = useState<string | null>(null)
     const messageContainerRef = useRef<HTMLDivElement | null>(null)
     const messageEndRef = useRef<HTMLDivElement | null>(null)
-    const {messages, sendMessage} = useChat(conversationId, otherUserId)
+    const {messages, setMessages}= useChatContext()
     const [text, setText] = useState('')
+    const [isBot, setIsBot] = useState(false)
+    const {sendMessage: sendUserMessage} = useChat(
+        isBot ? null : conversationId,
+        isBot ? null : otherUserId
+    )
 
+    const {sendMessage: sendBotMessage} = useBotChat(isBot)
+
+    console.log('messages is ', messages)
 
     useEffect(() => {
 
         if (!activeChat) return
-        if ('unread' in activeChat) {
+
+        if (activeChat.is_bot) {
+            setIsBot(true)
+            setConversationId(null)
+            setOtherUserId(null)
+
+
+
+    }else if ('unread' in activeChat) {
+            setIsBot(false)
             setConversationId(activeChat.id)
             setOtherUserId(null)
         } else {
+            setIsBot(false)
             setOtherUserId(activeChat.contact_user)
             setConversationId(null)
         }
@@ -39,14 +61,42 @@ const ChatArea = ({activeChat}) => {
 
 
     const handleSend = () => {
-        console.log('text', text)
-
-        if (text.trim()) {
-            console.log('handleSend')
-            sendMessage(text)
+       if(!text.trim()) return
+        if (isBot){
+            sendBotMessage(text)
+            setText('')
+        }else {
+            sendUserMessage(text)
             setText('')
         }
     }
+
+  const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // ایجاد URL موقت برای نمایش عکس
+            const imageUrl = URL.createObjectURL(file);
+
+            // فراخوانی تابع برای ارسال عکس
+            handleSendImage(imageUrl, file);
+        }
+    };
+
+  const handleSendImage = (imageUrl, file) => {
+        // اینجا می‌تونید عکس رو به سرور ارسال کنید
+        // برای نمونه، یک پیام با نوع عکس ایجاد می‌کنیم
+        const imageMessage = {
+            id: Date.now(),
+            text: '',
+            image: imageUrl,
+            isMe: true,
+            type: 'image',
+            created_at: new Date().toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        };
+}
 
 
     if (!activeChat) {
@@ -65,9 +115,9 @@ const ChatArea = ({activeChat}) => {
         );
     }
 
-    return (
+  return (
         <div className="flex-1 flex flex-col bg-white">
-
+            {/* Header */}
             <div className="p-3 border-b border-gray-300 flex items-center">
                 <img
                     src={activeChat.avatar}
@@ -76,12 +126,14 @@ const ChatArea = ({activeChat}) => {
                 />
                 <div className="flex-1">
                     <h3 className="font-semibold">{activeChat.name}</h3>
-                    {activeChat?.is_online ? <p className="text-xs text-gray-500">آنلاین</p> :
+                    {activeChat?.is_online ?
+                        <p className="text-xs text-gray-500">آنلاین</p> :
                         <p className="text-xs text-gray-500">{lastSeen}</p>
                     }
                 </div>
             </div>
 
+            {/* Messages Area */}
             <div ref={messageContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col-reverse">
                 <div className="space-y-4 flex flex-col-reverse">
                     <div className="space-y-4">
@@ -97,7 +149,23 @@ const ChatArea = ({activeChat}) => {
                                             : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'
                                     }`}
                                 >
-                                    <p className="text-sm">{message.text}</p>
+                                    {/* نمایش عکس اگر پیام از نوع عکس باشد */}
+                                    {message.images && message.images.map(image=> (
+                                        <div className="mb-2 ">
+                                            <img
+                                                src={image}
+                                                alt="uploaded"
+                                                className="max-w-full h-auto rounded-lg"
+                                            />
+                                        </div>
+                                    ))}
+
+                                    {/* نمایش متن اگر وجود دارد */}
+                                    {message.text && (
+                                        <p className="text-sm">{message.text}</p>
+                                    )}
+
+                                    {/* زمان ارسال */}
                                     <p className={`text-xs mt-1 ${message.isMe ? 'text-blue-100' : 'text-gray-500'} text-left`}>
                                         {message.created_at}
                                     </p>
@@ -107,44 +175,60 @@ const ChatArea = ({activeChat}) => {
                         <div ref={messageEndRef}/>
                     </div>
                 </div>
+            </div>
 
-                </div>
-
-
-                <div className="p-3 border-t border-gray-300">
-                    <div className="flex items-center">
-                        <button className="p-2 text-gray-500 hover:text-gray-700">
-                            <Paperclip size={20}/>
-                        </button>
+            {/* Input Area */}
+            <div className="p-3 border-t border-gray-300">
+                <div className="flex items-center">
+                    {/* Button for attaching files */}
+                    <div className="relative">
                         <input
-                            onChange={(e) => setText(e.target.value)}
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    handleSend()
-                                }
-                            }}
-
-                            type="text"
-                            value={text}
-                            placeholder="Type a message..."
-                            className="flex-1 mx-2 px-4 py-2 rounded-full bg-gray-100 focus:outline-none"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            id="image-upload"
                         />
-                        <button className="p-2 text-gray-500 hover:text-gray-700">
-                            <Smile size={20}/>
-                        </button>
-                        <button onClick={() => {
-                            handleSend()
-
-                        }}
-                                className="ml-2 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
-                            <Send size={20}/>
-
+                        <button
+                            className="p-2 text-gray-500 hover:text-gray-700"
+                            onClick={() => document.getElementById('image-upload').click()}
+                        >
+                            <ImageIcon size={20} />
                         </button>
                     </div>
+
+                    <button className="p-2 text-gray-500 hover:text-gray-700">
+                        <Paperclip size={20}/>
+                    </button>
+
+                    <input
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleSend()
+                            }
+                        }}
+                        type="text"
+                        value={text}
+                        placeholder="Type a message..."
+                        className="flex-1 mx-2 px-4 py-2 rounded-full bg-gray-100 focus:outline-none"
+                    />
+
+                    <button className="p-2 text-gray-500 hover:text-gray-700">
+                        <Smile size={20}/>
+                    </button>
+
+                    <button
+                        onClick={handleSend}
+                        className="ml-2 p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                    >
+                        <Send size={20}/>
+                    </button>
                 </div>
             </div>
-            );
-            };
+        </div>
+    );
 
-            export default ChatArea;
+            };
+  export default ChatArea

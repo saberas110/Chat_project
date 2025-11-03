@@ -46,6 +46,7 @@ export default function ChatProvider({children}: IchatProviderProps) {
     const [contacts, setContacts] = useState<IContacts[]>([])
     const [activeChat, setActiveChat] = useState(null)
     const [conversationId, setConversationId] = useState<string | null>(null)
+    const [messages, setMessages] = useState([])
 
 
 
@@ -72,7 +73,7 @@ async function getConversationId(id:string){
 
 
         return (
-            <chatContext.Provider value={{chatList, setChatList, contacts, setContacts, getConversationId, activeChat, setActiveChat}}>
+            <chatContext.Provider value={{messages, setMessages, chatList, setChatList, contacts, setContacts, getConversationId, activeChat, setActiveChat}}>
 
                 {children}
 
