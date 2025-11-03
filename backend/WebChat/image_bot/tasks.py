@@ -44,7 +44,6 @@ def add_text_to_tshirts(self, message_id, text, user_id):
                 "message": {
                     "id": msg.id,
                     "images": msg.images,
-                    "text": "تصویر شما اماده شد"
                 }
             }
         )

@@ -70,8 +70,8 @@ class BotConsumers(AsyncWebsocketConsumer):
         if type == 'print_text':
             message =await self.create_message(text)
 
-            task = add_text_to_tshirts.delay(message.id, text, self.user.id)
-            message.task_id = task.id
+            self.task = add_text_to_tshirts.apply_async((message.id, text, self.user.id), countdown=5 )
+            message.task_id = self.task.id
 
             await self.save_message(message)
 
@@ -81,7 +81,7 @@ class BotConsumers(AsyncWebsocketConsumer):
                     "id": 1,
                     "is_Me": False,
                     "created_at": timezone.now().strftime('%H:%M'),
-                    "text": f"The images for task ID <<{task.id}>> are being prepared"
+                    "text": f"The images for task ID <<{self.task.id}>> are {self.task.state}"
                 }
             }))
         if type == 'task_result':
@@ -105,11 +105,14 @@ class BotConsumers(AsyncWebsocketConsumer):
 
 
     async def send_generated_image(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "generated_images",
-            "message": event['message']
+         if self.task.state == 'SUCCESS':
+            event['message']['text'] = f'status for task {self.task.id} is :  {self.task.state}'
+            await self.send(text_data=json.dumps({
+                "type": "generated_images",
+                "message": event['message']
 
-        }))
+            }))
+        return None
 
     @database_sync_to_async
     def get_old_messages(self):
