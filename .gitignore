@@ -1,0 +1,92 @@
+# Created by https://www.toptal.com/developers/gitignore/api/django,react
+# Edit at https://www.toptal.com/developers/gitignore?templates=django,react
+
+### Django ###
+*.pem
+*.log
+*.pot
+*.pyc
+
+__pycache__/
+
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+### Environments ###
+chat_venv/
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+### IDE ###
+.idea/
+.vscode/
+
+### Node / React ###
+node_modules/
+bower_components/
+build/
+dist/
+.DS_*
+logs/
+*.sublime*
+**/*.backup.*
+**/*.back.*
+*.psd
+*.thumb
+*.sketch
+
+### Python ###
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+### Tests / Cache ###
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+### Docs ###
+docs/_build/
+.site/
+
+### Misc ###
+.pybuilder/
+target/
+ipython_config.py
+.profile_default/
+
