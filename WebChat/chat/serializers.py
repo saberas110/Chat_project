@@ -2,10 +2,12 @@ import re
 
 from django.conf import settings
 from django.db.models import Q
+from django.templatetags.static import static
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from WebChat.settings import MEDIA_URL
 from accounts.models import User
 from chat.exceptions import UserNotFoundError
 from chat.models import Conversation, Message, Contact
@@ -32,6 +34,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 
+
+
 class ConversationSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
@@ -40,15 +44,22 @@ class ConversationSerializer(serializers.ModelSerializer):
     is_online = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
     contact_user = serializers.SerializerMethodField()
+    is_bot = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ['id', 'name', 'last_message', 'unread', 'avatar', 'contact_user', 'is_online', 'last_seen']
+        fields = ['id', 'name', 'last_message', 'unread', 'avatar', 'contact_user', 'is_online', 'last_seen', 'is_bot']
 
     def _get_users(self, obj):
         user = self.context.get('user')
         other_user = obj.participants.exclude(id=user.id).first() if user else None
         return user, other_user
+
+    def get_is_bot(self, obj):
+        _, other_user = self._get_users(obj)
+        if other_user.phone_number == settings.BOT_NUMBER:
+            return True
+        return False
 
 
     def get_last_message(self, obj):
@@ -63,6 +74,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             other_user_contact = Contact.objects.get(owner=user, contact_user=other_user)
             return other_user_contact.name
         except Contact.DoesNotExist:
+            if other_user.phone_number==settings.BOT_NUMBER:
+                return 'دستیار هوشمند'
             return other_user.phone_number if other_user else None
 
     def get_avatar(self, obj):
@@ -71,7 +84,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         if avatar and avatar.image:
             main_avatar = getattr(avatar, 'image', None)
             return f'{settings.BASE_URL}{main_avatar.url}'
-        return f'{settings.BASE_URL}{settings.MEDIA_URL}/profile_images/avatar/default-avatar.jpg'
+        return f'{settings.BASE_URL}/{MEDIA_URL}profile_images/avatar/default-avatar.jpg'
 
     def get_unread(self, obj):
         user, _ = self._get_users(obj)

@@ -21,7 +21,7 @@ BASE_URL = 'http://localhost:8000'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-*zzr1=$!^ets%)%6(zjgy(%qazqmhv^k(%#atl!lvt&#59*fj_'
-
+BOT_NUMBER = '09111111111'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts.apps.AccountsConfig',
     'chat.apps.ChatConfig',
+    'image_bot.apps.ImageBotConfig',
     'rest_framework_simplejwt',
     'corsheaders',
 ]
@@ -130,7 +131,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

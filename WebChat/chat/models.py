@@ -19,6 +19,7 @@ class Message(models.Model):
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+
     def clean(self):
         if self.sender not in self.conversation.participants.all():
             raise ValidationError("Sender must be a participant of the conversation.")

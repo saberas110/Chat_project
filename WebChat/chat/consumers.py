@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.conf import settings
 from django.utils import timezone
 from chat.models import Message, Conversation
 from chat.serializers import MessageSerializer, ConversationSerializer
@@ -22,8 +23,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
 
         await self.set_online(self.user, True)
 
-        srz_conversations = await self.get_conversations(self.user)
-
+        bot_conversation = await self.get_or_create_bot_conversation()
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -34,6 +34,10 @@ class PresenceConsumer(AsyncWebsocketConsumer):
                 "status": "online",
             }
         )
+
+        srz_conversations = await self.get_conversations(self.user)
+        print('srz_conv', srz_conversations)
+
         await self.channel_layer.group_send(
             self.user_group_name,
             {
@@ -86,6 +90,28 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         }))
 
 
+    @database_sync_to_async
+    def get_or_create_bot_conversation(self):
+        from chat.models import Conversation
+        from accounts.models import User
+        from django.conf import settings
+
+
+
+        try:
+
+            bot = User.objects.get(phone_number=settings.BOT_NUMBER)
+        except User.DoesNotExist:
+            bot = User.objects.create(phone_number=settings.BOT_NUMBER)
+
+
+        conv = Conversation.objects.filter(participants=self.user).filter(participants=bot).distinct().first()
+        if  conv is None:
+            conv = Conversation.objects.create()
+            conv.participants.add(self.user, bot)
+
+        return conv
+
 
 
     @database_sync_to_async
@@ -104,12 +130,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_conversations(self, user):
-        from django.db.models import Max
+        from django.db.models import Max, Q
+        from accounts.models import User
+
+        bot_user = User.objects.get(phone_number=settings.BOT_NUMBER)
+
+        bot_conversation = Conversation.objects.filter(participants=user).filter(participants=bot_user).distinct().first()
 
 
         cvs = (
             Conversation.objects
-            .filter(participants=user, messages__isnull=False)
+            .filter(
+                Q(participants=user, messages__isnull=False) |
+                Q(id=bot_conversation.id)
+            )
             .annotate(last_message_time=Max('messages__created_at'))
             .order_by('-last_message_time')
             .distinct())
@@ -229,7 +263,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except User.DoesNotExist:
             return None
 
-        conv = Conversation.objects.filter(participants__id=user_id).filter(participants__id=other_user_id).filter().first()
+        conv = Conversation.objects.filter(participants__id=user_id).filter(participants__id=other_user_id).first()
         if not conv:
             conv = Conversation.objects.create()
             conv.participants.add(user_id, other_user_id)

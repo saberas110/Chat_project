@@ -57,6 +57,7 @@ class RegisterView(APIView):
             secure= False,
             samesite='lax',
         )
+
         print( 'response', response.cookies)
         return response
 
